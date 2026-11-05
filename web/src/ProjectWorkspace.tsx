@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import { ArrowLeft, Check, Clipboard, ExternalLink, Link2, LoaderCircle, Pencil, Plus, RotateCw, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Clipboard, ExternalLink, Link2, LoaderCircle, Pencil, Plus, RotateCw, Search, Trash2, X } from 'lucide-react'
 import './App.css'
 
 type Item = { id: string; text: string; note: string; completed: boolean }
@@ -69,6 +69,8 @@ export default function ProjectWorkspace() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingProject, setEditingProject] = useState(false)
   const [editingListId, setEditingListId] = useState<string | null>(null)
+  const [mobileListMenuOpen, setMobileListMenuOpen] = useState(false)
+  const [listSearch, setListSearch] = useState('')
   const [loading, setLoading] = useState(Boolean(readToken()))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -76,6 +78,7 @@ export default function ProjectWorkspace() {
 
   const activeProject = token ? project : demoMode ? demoProjects.find((entry) => entry.id === activeDemoId) ?? null : project
   const activeList = activeProject?.lists.find((entry) => entry.id === selectedListId) ?? activeProject?.lists[0] ?? null
+  const filteredLists = activeProject?.lists.filter((list) => list.title.toLocaleLowerCase().includes(listSearch.trim().toLocaleLowerCase())) ?? []
   const completedCount = activeList?.items.filter((item) => item.completed).length ?? 0
 
   useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(savedProjects)) }, [savedProjects])
@@ -358,6 +361,23 @@ export default function ProjectWorkspace() {
             <div className="project-workspace">
               <aside className="lists-sidebar">
                 <div className="sidebar-title"><span>LISTS</span><span>{activeProject.lists.length}</span></div>
+                <div className="mobile-list-picker">
+                  <button className={`mobile-list-trigger${mobileListMenuOpen ? ' is-open' : ''}`} type="button" aria-haspopup="listbox" aria-expanded={mobileListMenuOpen} onClick={() => { setMobileListMenuOpen((open) => !open); setListSearch('') }}>
+                    <span><small>当前 List</small><strong>{activeList?.title ?? '选择一个 List'}</strong></span>
+                    <ChevronDown size={18} />
+                  </button>
+                  {mobileListMenuOpen && <div className="mobile-list-menu">
+                    <label className="mobile-list-search"><Search size={16} /><input aria-label="搜索 List 名称" placeholder="搜索 List…" value={listSearch} onChange={(event) => setListSearch(event.target.value)} autoFocus /><button type="button" aria-label="关闭 List 选择器" onClick={() => { setMobileListMenuOpen(false); setListSearch('') }}><X size={15} /></button></label>
+                    <div className="mobile-list-options" role="listbox" aria-label="搜索结果">
+                      {filteredLists.length ? filteredLists.map((list) => <div className={`mobile-list-option${activeList?.id === list.id ? ' selected' : ''}`} key={list.id}>
+                        {editingListId === list.id ? <form className="list-rename-form" onSubmit={(event) => { event.preventDefault(); void saveListName(list) }}><input aria-label="List 名称" value={listNameDraft} onChange={(event) => setListNameDraft(event.target.value)} autoFocus /><button type="submit" title="保存名称" aria-label="保存 List 名称"><Check size={14} /></button><button type="button" title="取消" aria-label="取消修改 List 名称" onClick={() => setEditingListId(null)}><X size={14} /></button></form> : <>
+                          <button className="mobile-list-option-select" type="button" role="option" aria-selected={activeList?.id === list.id} onClick={() => { setSelectedListId(list.id); setMobileListMenuOpen(false); setListSearch('') }}><span>{list.title}</span><small>{list.items.length}</small></button>
+                          <div className="mobile-list-option-actions"><button type="button" title="修改 List 名称" aria-label={`修改 List 名称：${list.title}`} onClick={() => { setListNameDraft(list.title); setEditingListId(list.id) }}><Pencil size={13} /></button><button type="button" title="删除 List" aria-label={`删除 List：${list.title}`} onClick={() => void deleteList(list)}><Trash2 size={13} /></button></div>
+                        </>}
+                      </div>) : <div className="mobile-list-no-results">没有找到匹配的 List</div>}
+                    </div>
+                  </div>}
+                </div>
                 <nav className="list-nav" aria-label="项目 Lists">
                   {activeProject.lists.map((list) => <div className={`list-nav-row${activeList?.id === list.id ? ' selected' : ''}`} key={list.id}>
                     {editingListId === list.id ? <form className="list-rename-form" onSubmit={(event) => { event.preventDefault(); void saveListName(list) }}><input aria-label="List 名称" value={listNameDraft} onChange={(event) => setListNameDraft(event.target.value)} autoFocus /><button type="submit" title="保存名称" aria-label="保存 List 名称"><Check size={14} /></button><button type="button" title="取消" aria-label="取消修改 List 名称" onClick={() => setEditingListId(null)}><X size={14} /></button></form>
