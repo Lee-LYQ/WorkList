@@ -1,17 +1,19 @@
 # Worklist
 
-A static React app hosted on GitHub Pages, with Supabase as its database. People collaborate through a share URL and do not need an account.
+A static React app hosted on GitHub Pages, with Supabase Auth and Postgres. Project creators sign in by email magic link; collaborators can use permission-scoped share links without creating accounts.
 
 ## Local development
 
 1. Copy `web/.env.example` to `web/.env.local` and fill in the project's Supabase URL and publishable key. These are browser-facing values; never put a Supabase secret/service-role key in the frontend.
 2. From `web/`, run `npm install` once and `npm run dev` to start the site.
 
-The data model is `projects → lists → items`. Each project has its own share URL containing a random bearer token in the URL fragment. Anyone holding that project's link can manage its project name, Lists, and items. The database stores only a SHA-256 hash of the token; rotating the link invalidates the previous URL. Do not use this for sensitive information.
+The data model is `projects → lists → items`. Only signed-in users can create projects, and each project is owned by its creator. Owners can issue `read`, `items`, or `lists` share links and revoke each link independently. A share link contains a random bearer token in the URL fragment; the database stores only its SHA-256 hash. Collaborators can set a temporary display name that is recorded in project activity. This name is self-declared, not verified identity. Do not use this for sensitive information.
 
 ## Database
 
-The migration in `supabase/migrations/` creates project, List, and item tables plus anonymous RPCs. The tables have RLS enabled and no direct client grants; the RPCs validate the project share token before reading or changing data. Created project links are remembered in the current browser; copy and share a project's link with collaborators to let them open it elsewhere.
+Migrations in `supabase/migrations/` create project, List, item, share-link, and activity tables. Tables have RLS enabled and no direct client grants. Security-definer RPCs verify either the authenticated project owner or the permission attached to a share token before every operation.
+
+Existing projects created before owner accounts were introduced keep their data and old links. An authenticated user who has an old project link can claim an unowned legacy project; the first successful claim becomes its owner. Coordinate this claim with the original project creator before upgrading.
 
 Review the migration, then apply it to the linked Supabase project with:
 
@@ -30,4 +32,6 @@ The workflow in `.github/workflows/pages.yml` builds `web/` and deploys on pushe
 
 Set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. The project URL is `https://Lee-LYQ.github.io/WorkList/` after a successful deployment.
 
-GitHub Pages sites are public, including sites built from private repositories when the plan supports private-repository Pages. Confirm Pages availability for this private repository's plan before enabling deployment. The published frontend and its publishable key are public; project data remains protected by the share token.
+In Supabase **Authentication → URL Configuration**, allow the production redirect `https://lee-lyq.github.io/WorkList/` and the local redirect `http://localhost:5173/WorkList/` (plus any Vite port used locally). Email magic-link sign-in depends on these redirect URLs and the project's email provider settings.
+
+The published frontend and publishable key are public. Project data is protected by owner checks and permission-scoped share tokens. Anyone holding a share link can act within that link's permission; anonymous display names are not verified identities.
