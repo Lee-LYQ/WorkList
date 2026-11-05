@@ -90,8 +90,14 @@ button:disabled { opacity: .48; cursor: not-allowed; }
 .new-project-form input, .title-edit-row input, .list-rename-form input { min-width: 0; height: 43px; border: 1px solid #dfe4dc; border-radius: 4px; background: var(--paper); padding: 0 12px; color: var(--ink); }
 .new-project-form input { flex: 1; }
 .project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-bottom: 20px; }
-.project-card { min-width: 0; min-height: 88px; border: 1px solid #e1e5de; border-radius: 5px; background: var(--paper); color: var(--ink); padding: 16px; display: flex; align-items: center; gap: 13px; text-align: left; transition: border-color .16s, transform .16s, box-shadow .16s; }
+.project-card { min-width: 0; min-height: 88px; border: 1px solid #e1e5de; border-radius: 5px; background: var(--paper); color: var(--ink); display: flex; align-items: stretch; transition: border-color .16s, transform .16s, box-shadow .16s; }
 .project-card:hover { border-color: #b6c8b9; transform: translateY(-2px); box-shadow: 0 9px 22px #253c2e0a; }
+.project-card-open { min-width: 0; flex: 1; border: 0; border-radius: inherit; background: transparent; color: inherit; padding: 16px 10px 16px 16px; display: flex; align-items: center; gap: 13px; text-align: left; }
+.project-card-open:focus-visible { outline-offset: -3px; }
+.project-card-delete { flex: none; align-self: center; width: 36px; height: 36px; margin-right: 9px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #929b93; }
+.project-card-delete:hover:not(:disabled) { color: #a44436; border-color: #edd9d4; background: #fff5f2; }
+.button-danger { background: #fff4f1; color: #9e4437; border: 1px solid #efd8d1; }
+.button-danger:hover:not(:disabled) { background: #fce9e4; }
 .project-card-mark { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 8px; background: #e9f0e5; color: var(--green); }
 .project-card-copy { display: grid; min-width: 0; gap: 5px; flex: 1; }
 .project-card-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }

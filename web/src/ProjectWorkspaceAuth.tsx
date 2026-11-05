@@ -325,6 +325,22 @@ export default function ProjectWorkspaceAuth() {
     backToProjects()
   }
 
+  async function deleteProjectCard(card: ProjectCard) {
+    if (!card.owner || !window.confirm(`删除项目“${card.title}”及其全部 Lists 和事项？此操作无法撤销。`)) return
+    if (demoMode) {
+      setDemoProjects((current) => current.filter((entry) => entry.id !== card.id))
+      return
+    }
+    if (!supabase || !user) return
+    setBusy(true)
+    setError('')
+    const { error: requestError } = await supabase.rpc('delete_owned_project', { p_project_id: card.id })
+    setBusy(false)
+    if (requestError) { setError(requestError.message); return }
+    setOwnedProjects((current) => current.filter((entry) => entry.id !== card.id))
+    setSavedProjects((current) => current.filter((entry) => entry.id !== card.id))
+  }
+
   async function createShareLink(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!supabase || !activeProject?.owner) return
@@ -518,7 +534,7 @@ export default function ProjectWorkspaceAuth() {
             <div className="project-actions">
               {!demoMode && activeProject.owner && <button className="button button-primary" type="button" onClick={() => { setSharePanelOpen(true); setNewShareUrl('') }}><Share2 size={16} />分享权限</button>}
               {route.token && <button className="button button-primary" type="button" onClick={() => void copyText(shareUrl(route.token!), '分享链接已复制')}><Link2 size={16} />复制当前链接</button>}
-              {activeProject.owner && <button className="icon-button danger-action" type="button" title="删除项目" aria-label="删除项目" onClick={() => void deleteProject()}><Trash2 size={16} /></button>}
+              {activeProject.owner && <button className="button button-danger" type="button" onClick={() => void deleteProject()} disabled={busy}><Trash2 size={15} />删除项目</button>}
             </div>
           </div>
 
@@ -590,7 +606,10 @@ export default function ProjectWorkspaceAuth() {
         {!user && !demoMode && <section className="auth-card">{renderAuthForm()}<p className="auth-hint">登录链接有效期有限；打开邮件链接后即可创建项目。</p></section>}
         {(user || demoMode) && <form className="new-project-form" onSubmit={(event) => void createProject(event)}><input aria-label="项目名称" placeholder="输入新项目名称…" value={newProjectName} onChange={(event) => setNewProjectName(event.target.value)} maxLength={120} required /><button className="button button-primary" type="submit" disabled={busy || !newProjectName.trim()}>{busy ? <LoaderCircle className="spin" size={17} /> : <Plus size={17} />}新建项目</button></form>}
         {authMessage && <p className="inline-success" role="status">{authMessage}</p>}
-        {projectCards.length > 0 && <div className="project-grid">{projectCards.map((card) => <button className="project-card" type="button" key={`${card.id}-${card.owner ? 'owner' : 'share'}`} onClick={() => openProjectCard(card)}><span className="project-card-mark"><Check size={17} /></span><span className="project-card-copy"><strong>{card.title}</strong><small>{card.owner ? `${card.lists_count ?? 0} 个 Lists · 我的项目` : '通过协作链接访问'}</small></span><span className="project-card-arrow">↗</span></button>)}</div>}
+        {projectCards.length > 0 && <div className="project-grid">{projectCards.map((card) => <article className="project-card" key={`${card.id}-${card.owner ? 'owner' : 'share'}`}>
+          <button className="project-card-open" type="button" onClick={() => openProjectCard(card)}><span className="project-card-mark"><Check size={17} /></span><span className="project-card-copy"><strong>{card.title}</strong><small>{card.owner ? `${card.lists_count ?? 0} 个 Lists · 我的项目` : '通过协作链接访问'}</small></span><span className="project-card-arrow">↗</span></button>
+          {card.owner && <button className="project-card-delete" type="button" aria-label={`删除项目：${card.title}`} title="删除项目" onClick={() => void deleteProjectCard(card)} disabled={busy}><Trash2 size={16} /></button>}
+        </article>)}</div>}
         {projectCards.length === 0 && user && <div className="projects-empty"><p>还没有项目。创建第一个项目开始协作。</p></div>}
         {!user && savedProjects.length === 0 && <div className="projects-empty"><p>打开组员分享给你的项目链接，即可在此浏览器中找回。</p></div>}
         <p className="projects-note"><Link2 size={14} /> 只有创建者需要登录；协作者使用持有的权限链接即可访问。</p>
